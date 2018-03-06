@@ -32,6 +32,7 @@ import com.edwin.imsgdereg.network.RetrofitInstance;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.UUID;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -46,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
     EditText phoneET;
     EditText countryCodeET;
     EditText tokenET;
+
+    //Todo seems not work...
+    static String gCookie = "origin-selfsolve=" + UUID.randomUUID().toString().replaceAll("-", "");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         getTokenButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                retrieTokoenFromNetwork(phoneET.getText().toString(), countryCodeET.getText().toString());
+                retrieTokenFromNetwork(phoneET.getText().toString(), countryCodeET.getText().toString());
             }
         });
 
@@ -165,8 +169,9 @@ public class MainActivity extends AppCompatActivity {
         phoneET.setText(phone);
     }
 
-    private void retrieTokoenFromNetwork(final String phone, final String countryCode) {
-        Call<ResponseData> call = networkService.getTokenData(phone, countryCode);
+    private void retrieTokenFromNetwork(final String phone, final String countryCode) {
+        setLog("sendsms request cookie", gCookie);
+        Call<ResponseData> call = networkService.getTokenData(gCookie, phone, countryCode);
         //Log.wtf("URL Called", call.request().url() + "");
         setLog("URL Called", call.request().url().toString());
 
@@ -174,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ResponseData> call, Response<ResponseData> response) {
                 if (response != null) {
+                    String cookie = gCookie.split(";")[0];
+                    setLog("sendsms response cookie", cookie);
                     setResponseLog(response);
 //                    Log.i("token", "message=" + response.body().getMessage() +
 //                            " messageCode=" + response.body().getMessageCode() +
@@ -190,7 +197,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void turnOffiMessageFromNetwork(final String phone, final String token) {
-        Call<ResponseData> call = networkService.getTurnOffiMessageResult(phone, token);
+        setLog("turnOffiMessage request cookie", gCookie);
+        Call<ResponseData> call = networkService.getTurnOffiMessageResult(gCookie, phone, token);
         //Log.wtf("URL Called", call.request().url() + "");
         setLog("URL Called", call.request().url().toString());
 
