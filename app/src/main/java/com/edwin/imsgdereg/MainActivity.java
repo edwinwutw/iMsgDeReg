@@ -1,11 +1,20 @@
 package com.edwin.imsgdereg;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
@@ -47,13 +56,20 @@ public class MainActivity extends AppCompatActivity {
 
         networkService = RetrofitInstance.getRetrofitInstance().create(GetDeReisterService.class);
 
+        // set phone number
         phoneET = (EditText) findViewById(R.id.phone);
+
+        // set country code
         countryCodeET =(EditText) findViewById(R.id.countrycode);
+
+        // wait sms to get token and paste here after getToken Button is pressed and succeed to get token
         tokenET =  (EditText) findViewById(R.id.token);
 
+        // loggin window
         logWindow = (TextView)findViewById(R.id.logWindow);
         logWindow.setMovementMethod(new ScrollingMovementMethod());
 
+        // get token button
         getTokenButton = (Button) findViewById(R.id.gettoken);
         getTokenButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -62,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // deRegister iMessage button
         deRegButton = (Button) findViewById(R.id.dereg);
         deRegButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -70,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        attmptGetLine1Number();
     }
 
     @Override
@@ -92,6 +110,59 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private static final int PERMISSIONS_REQUEST_CODE = 11;
+
+    private void attmptGetLine1Number() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE)){
+                    new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Read Phone State Permission")
+                        .setMessage("No read phone state permission, could you please grant it?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE}, PERMISSIONS_REQUEST_CODE);
+                            }
+                        })
+                        .setNegativeButton("No thanks", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                Toast.makeText(MainActivity.this, "You can't access READ PHONE STATE in this application!", Toast.LENGTH_SHORT).show();
+                            }
+                        }).show();
+                } else
+                    requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE}, PERMISSIONS_REQUEST_CODE);
+            } else
+                getLine1Number();
+        } else
+            getLine1Number();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if(requestCode == PERMISSIONS_REQUEST_CODE){
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                getLine1Number();
+        }
+    }
+
+    private void getLine1Number() {
+        String phone = "";
+
+        try {
+            TelephonyManager tMgr = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+            phone = tMgr.getLine1Number();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            setLog("error-getLine1Number: ", e.getLocalizedMessage());
+        }
+
+        setLog("getLine1Number: ", phone);
+
+        phoneET.setText(phone);
     }
 
     private void retrieTokoenFromNetwork(final String phone, final String countryCode) {
